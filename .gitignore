@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+
+# Data (don't commit large datasets)
+data/raw/*
+data/processed/*
+data/augmented/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/augmented/.gitkeep
+
+# Models (don't commit large model files)
+models/saved/*
+models/checkpoints/*
+!models/saved/.gitkeep
+!models/checkpoints/.gitkeep
+
+# Results
+results/plots/*
+results/logs/*
+!results/plots/.gitkeep
+!results/logs/.gitkeep
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
