@@ -1,6 +1,63 @@
 # CV Image Classifier
 
-A convolutional neural network (CNN) image classifier built with PyTorch. Includes a complete ML pipeline from data loading to training, evaluation, inference, and an interactive web UI for real-time predictions.
+A convolutional neural network (CNN) image classifier built with PyTorch. Trains on CIFAR-10 (60K images, 10 classes) and achieves 83.89% test accuracy. Includes a Gradio web UI for interactive predictions.
+
+## Results
+
+### Training Performance
+![Training History](assets/training_history.png)
+
+The model trains for 25 epochs with cosine annealing learning rate decay. Train accuracy reaches 90.1% while test accuracy plateaus at 83.89% — the ~6% gap indicates mild overfitting, which is typical for small models on CIFAR-10. The LR drops smoothly from 1e-3 to near-zero, helping the model settle into a good minimum.
+
+| Metric | Value |
+|--------|-------|
+| Test Accuracy | **83.89%** |
+| Parameters | ~1.2M |
+| Training Time | ~2 min (RTX 4090) |
+| Epochs | 25 (no early stopping triggered) |
+| Optimizer | Adam + Cosine Annealing |
+| Dataset | CIFAR-10 (50K train / 10K test) |
+
+### Confusion Matrix
+![Confusion Matrix](assets/confusion_matrix.png)
+
+Out of 10,000 test images:
+- **Best classes**: automobile (94.1%), truck (92.4%), ship (91.6%) — vehicles with distinct shapes
+- **Worst classes**: cat (61.8%), bird (70.1%), dog (79.9%) — animals with variable poses/textures
+- The biggest confusion: **173 cats misclassified as dogs** (they share fur, ears, similar shapes)
+
+### Per-Class Metrics
+![Per-Class Metrics](assets/per_class_metrics.png)
+
+The model handles vehicles (automobile, ship, truck) much better than animals (cat, bird, dog). This makes sense — vehicles have rigid, consistent shapes while animals vary widely in pose, color, and background.
+
+### Architecture
+![Architecture](assets/architecture.png)
+
+## How It Works
+
+```
+Input Image (32x32 RGB)
+     |
+[Conv Block 1] --> 32 filters, 3x3 conv x2, BatchNorm, ReLU, MaxPool --> 16x16
+     |
+[Conv Block 2] --> 64 filters, 3x3 conv x2, BatchNorm, ReLU, MaxPool --> 8x8
+     |
+[Conv Block 3] --> 128 filters, 3x3 conv x2, BatchNorm, ReLU, MaxPool --> 4x4
+     |
+[Flatten] --> 128 * 4 * 4 = 2,048 features
+     |
+[FC Layer] --> 512 neurons, ReLU, Dropout(0.5)
+     |
+[Output] --> 10 class probabilities (softmax)
+```
+
+**What does each part do?**
+- **Conv layers** slide small filters across the image to detect patterns (edges, textures, shapes)
+- **BatchNorm** normalizes activations so training is faster and more stable
+- **MaxPool** shrinks the feature maps by 2x, making the model focus on "what" not "where"
+- **Dropout** randomly zeroes neurons during training to prevent overfitting
+- **Fully connected layers** combine all detected features into a final classification
 
 ## Features
 
@@ -8,132 +65,99 @@ A convolutional neural network (CNN) image classifier built with PyTorch. Includ
 - **CIFAR-10** dataset support (10 classes: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck)
 - **Data augmentation** (random crop, flip, color jitter) to prevent overfitting
 - **Cosine annealing** learning rate schedule with early stopping
-- **Interactive web UI** powered by Gradio - upload any image and get predictions
+- **Interactive web UI** powered by Gradio — upload any image and get predictions
 - **GPU accelerated** training with CUDA (tested on RTX 4090)
-- **Modular codebase** - easy to swap models, datasets, and hyperparameters
-
-## Project Structure
-
-```
-cv-image-classifier/
-├── configs/
-│   └── default.yaml         # Hyperparameter configuration
-├── data/
-│   ├── raw/                  # Downloaded dataset (auto-fetched)
-│   ├── processed/            # Preprocessed data
-│   └── augmented/            # Augmented training data
-├── models/
-│   ├── saved/                # Best trained models
-│   └── checkpoints/          # Periodic checkpoints
-├── notebooks/                # Jupyter notebooks for exploration
-├── results/
-│   ├── plots/                # Confusion matrices, training curves
-│   └── logs/                 # Training logs
-└── src/
-    ├── app.py                # Gradio web UI
-    ├── train.py              # Training script
-    ├── evaluate.py           # Evaluation with detailed metrics
-    ├── predict.py            # CLI single-image inference
-    ├── data/
-    │   └── dataset.py        # Data loading & transforms
-    ├── models/
-    │   └── cnn.py            # CNN architecture
-    └── utils/
-        └── helpers.py        # Seed, device, checkpoint utilities
-```
 
 ## Setup
 
 ```bash
-# Clone the repo
 git clone git@github.com:H4ph4z4rdz/cv-image-classifier.git
 cd cv-image-classifier
 
-# Create virtual environment
 python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # Linux/Mac
 
-# Install PyTorch with CUDA (for GPU support)
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
-
-# Install remaining dependencies
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-### Train the Model
+### 1. Train the Model
 
 ```bash
-python src/train.py --config configs/default.yaml
+python src/train.py
 ```
 
-Trains a SimpleCNN on CIFAR-10 for 25 epochs with data augmentation. The best model is automatically saved to `models/saved/best_model.pth`.
-
-### Launch the Web UI
+### 2. Launch the Web UI
 
 ```bash
 python src/app.py
 ```
 
-Opens an interactive web interface at **http://localhost:7860** where you can:
-- Upload any image (drag & drop or click to browse)
-- See real-time predictions with confidence percentages
-- The model auto-classifies on upload
+Open **http://localhost:7860** in your browser.
 
-### Evaluate on Test Set
+### 3. Evaluate on Test Set
 
 ```bash
 python src/evaluate.py --model models/saved/best_model.pth
 ```
 
-Generates a full classification report and confusion matrix.
-
-### CLI Prediction
+### 4. CLI Prediction
 
 ```bash
 python src/predict.py --image path/to/image.jpg --model models/saved/best_model.pth
 ```
 
-## Model Architecture
+## Project Structure
 
 ```
-Input (3x32x32) → Conv Block 1 (32 filters) → Conv Block 2 (64 filters)
-→ Conv Block 3 (128 filters) → FC(2048→512) → FC(512→10) → Output
+cv-image-classifier/
+├── assets/                    # Charts for README
+├── configs/
+│   └── default.yaml           # All configuration
+├── data/
+│   └── raw/                   # Downloaded dataset (auto-fetched)
+├── models/
+│   ├── saved/                 # Best trained model
+│   └── checkpoints/           # Periodic checkpoints
+├── results/
+│   ├── plots/                 # Generated evaluation charts
+│   └── logs/                  # Training logs
+└── src/
+    ├── train.py               # Training script
+    ├── evaluate.py            # Evaluation with detailed metrics
+    ├── predict.py             # CLI single-image inference
+    ├── app.py                 # Gradio web UI
+    ├── generate_charts.py     # Chart generation for README
+    ├── data/
+    │   └── dataset.py         # Data loading & transforms
+    ├── models/
+    │   └── cnn.py             # CNN architecture
+    └── utils/
+        └── helpers.py         # Seed, device, checkpoint utilities
 ```
-
-Each conv block: `Conv2d → BatchNorm → ReLU → Conv2d → BatchNorm → ReLU → MaxPool → Dropout`
-
-## Results
-
-| Metric | Value |
-|--------|-------|
-| Test Accuracy | **83.89%** |
-| Parameters | ~1.2M |
-| Training Time | ~2 min (RTX 4090) |
-| Dataset | CIFAR-10 (60K images) |
-
-## Tech Stack
-
-- **PyTorch** - Deep learning framework
-- **torchvision** - Datasets, transforms, pretrained models
-- **Gradio** - Interactive web UI for predictions
-- **Matplotlib / Seaborn** - Visualization
-- **scikit-learn** - Evaluation metrics
-- **CUDA** - GPU acceleration (RTX 4090)
 
 ## Configuration
 
-Edit `configs/default.yaml` to tweak hyperparameters:
+Edit `configs/default.yaml`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `batch_size` | 64 | Images per training step |
-| `epochs` | 25 | Training iterations over full dataset |
-| `learning_rate` | 0.001 | Step size for weight updates |
-| `augmentation` | true | Enable data augmentation |
-| `early_stopping_patience` | 5 | Stop if no improvement for N epochs |
+| `data.batch_size` | 64 | Images per training step |
+| `training.epochs` | 25 | Training iterations over full dataset |
+| `training.learning_rate` | 0.001 | Step size for weight updates |
+| `data.augmentation` | true | Enable data augmentation |
+| `training.early_stopping_patience` | 5 | Stop if no improvement for N epochs |
+
+## Tech Stack
+
+- **PyTorch** — Deep learning framework
+- **torchvision** — Datasets, transforms, pretrained models
+- **Gradio** — Interactive web UI for predictions
+- **Matplotlib / Seaborn** — Visualization
+- **scikit-learn** — Evaluation metrics
 
 ## License
 
