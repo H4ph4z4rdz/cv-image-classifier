@@ -179,7 +179,7 @@ with gr.Blocks(
 
 
 if __name__ == "__main__":
-    print("\n🚀 Launching Image Classifier UI...")
+    print("\nLaunching Image Classifier UI...")
     print("   Open http://localhost:7860 in your browser\n")
     demo.launch(
         server_name="0.0.0.0",

@@ -31,6 +31,11 @@ Out of 10,000 test images:
 
 The model handles vehicles (automobile, ship, truck) much better than animals (cat, bird, dog). This makes sense — vehicles have rigid, consistent shapes while animals vary widely in pose, color, and background.
 
+### Sample Predictions
+![Sample Predictions](assets/sample_predictions.png)
+
+Green borders = correct predictions, red borders = misclassifications. Notice the model confidently predicts vehicles (ships, trucks, automobiles) but struggles with animals — the two cats on the right were both misclassified as dogs with 72-81% confidence. This matches the confusion matrix above.
+
 ### Architecture
 ![Architecture](assets/architecture.png)
 
